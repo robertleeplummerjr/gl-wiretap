@@ -21,7 +21,8 @@ function glWiretap(gl, options) {
     bufferOutputs: [],
     buffers: [],
     imageData: [],
-    locations: [],
+    attributeLocations: [],
+    uniformLocations: [],
     textures: [],
     framebuffers: [],
     extensions: [],
@@ -183,20 +184,25 @@ function glWiretap(gl, options) {
             }
             break;
           case 'getAttribLocation':
-            recording.push('const location' + variables.locations.length + ' = gl.getAttribLocation(program' + variables.programs.indexOf(arguments[0]) + ', `' + arguments[1] + '`;');
-            const location = gl.getAttribLocation(arguments[0], arguments[1]);
-            variables.locations.push(location);
-            return location;
+            recording.push('const attributeLocation' + variables.attributeLocations.length + ' = gl.getAttribLocation(program' + variables.programs.indexOf(arguments[0]) + ', `' + arguments[1] + '`;');
+            const attributeLocation = gl.getAttribLocation(arguments[0], arguments[1]);
+            variables.attributeLocations.push(attributeLocation);
+            return attributeLocation;
+          case 'getUniformLocation':
+            recording.push(`const uniformLocation${ variables.uniformLocations.length } = gl.getUniformLocation(program${ variables.programs.indexOf(arguments[0]) }, '${ arguments[1] }');`);
+            const uniformLocation = gl.getUniformLocation(arguments[0], arguments[1]);
+            variables.uniformLocations.push(uniformLocation);
+            return uniformLocation;
           case 'vertexAttribPointer':
-            if (variables.locations.indexOf(arguments[0]) > -1) {
-              recording.push(`gl.vertexAttribPointer(location${variables.locations.indexOf(arguments[0])}, ${arguments[1]}, ${arguments[2]}, ${arguments[3]}, ${arguments[4]}, ${arguments[5]});`);
+            if (variables.attributeLocations.indexOf(arguments[0]) > -1) {
+              recording.push(`gl.vertexAttribPointer(attributeLocation${variables.attributeLocations.indexOf(arguments[0])}, ${arguments[1]}, ${arguments[2]}, ${arguments[3]}, ${arguments[4]}, ${arguments[5]});`);
             } else {
               recording.push(`gl.vertexAttribPointer(${arguments[0]}, ${arguments[1]}, ${arguments[2]}, ${arguments[3]}, ${arguments[4]}, ${arguments[5]});`);
             }
             break;
           case 'enableVertexAttribArray':
-            if (variables.locations.indexOf(arguments[0]) > -1) {
-              recording.push(`gl.enableVertexAttribArray(location${variables.locations.indexOf(arguments[0])});`);
+            if (variables.attributeLocations.indexOf(arguments[0]) > -1) {
+              recording.push(`gl.enableVertexAttribArray(attributeLocation${variables.attributeLocations.indexOf(arguments[0])});`);
             } else {
               recording.push(`gl.enableVertexAttribArray(${arguments[0]});`);
             }
@@ -236,6 +242,32 @@ function glWiretap(gl, options) {
             break;
           case 'deleteTexture':
             recording.push(`gl.deleteTexture(texture${ variables.textures.indexOf(arguments[0]) });`);
+            break;
+          case 'uniform1fv':
+          case 'uniform1iv':
+          case 'uniform2fv':
+          case 'uniform2iv':
+          case 'uniform3fv':
+          case 'uniform3iv':
+          case 'uniform4fv':
+          case 'uniform4iv':
+            recording.push(`gl.${property}(uniformLocation${ variables.uniformLocations.indexOf(arguments[0])}, ${ JSON.stringify(Array.from(arguments[1])) });`);
+            break;
+          case 'uniform1f':
+          case 'uniform1i':
+            recording.push(`gl.${property}(uniformLocation${ variables.uniformLocations.indexOf(arguments[0])}, ${ arguments[1] });`);
+            break;
+          case 'uniform2f':
+          case 'uniform2i':
+            recording.push(`gl.${property}(uniformLocation${ variables.uniformLocations.indexOf(arguments[0])}, ${ arguments[1] }, ${ arguments[2] });`);
+            break;
+          case 'uniform3f':
+          case 'uniform3i':
+            recording.push(`gl.${property}(uniformLocation${ variables.uniformLocations.indexOf(arguments[0])}, ${ arguments[1] }, ${ arguments[2] }, ${ arguments[3] });`);
+            break;
+          case 'uniform4f':
+          case 'uniform4i':
+            recording.push(`gl.${property}(uniformLocation${ variables.uniformLocations.indexOf(arguments[0])}, ${ arguments[1] }, ${ arguments[2] }, ${ arguments[3] }, ${ arguments[4] });`);
             break;
           default:
             recording.push(`gl.${ property }(${ argumentsToString(arguments) });`);
@@ -287,6 +319,9 @@ function argumentsToString(args) {
       case 'boolean':
         return arg ? 'true' : 'false';
       default:
+        if (arg === null) {
+          return 'null';
+        }
         throw new Error('unrecognized argument');
     }
   }).join(', '))
