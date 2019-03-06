@@ -32,6 +32,10 @@ function glWiretap(gl, options) {
   const throwGetError = options.throwGetError;
   const throwGetShaderParameter = options.throwGetShaderParameter;
   const throwGetProgramParameter = options.throwGetProgramParameter;
+  const glEntityNames = Object.getOwnPropertyNames(gl).reduce((obj, name) => {
+    obj[gl[name]] = name;
+    return obj;
+  }, {});
   return proxy;
   function listen(obj, property) {
     if (property === 'toString') return toString;
@@ -44,18 +48,18 @@ function glWiretap(gl, options) {
             }
             break;
           case 'createProgram':
-            recording.push(`const program${ variables.programs.length } = gl.createProgram();`);
+            recording.push(`const program${variables.programs.length} = gl.createProgram();`);
             const program = gl.createProgram();
             variables.programs.push(program);
             return program;
           case 'createShader':
             if (arguments[0] === gl.VERTEX_SHADER) {
-              recording.push(`const vertexShader${ variables.vertexShaders.length } = gl.createShader(gl.VERTEX_SHADER);`);
+              recording.push(`const vertexShader${variables.vertexShaders.length} = gl.createShader(gl.VERTEX_SHADER);`);
               const vertexShader = gl.createShader(gl.VERTEX_SHADER);
               variables.vertexShaders.push(vertexShader);
               return vertexShader;
             } else if (arguments[0] === gl.FRAGMENT_SHADER) {
-              recording.push(`const fragmentShader${ variables.fragmentShaders.length } = gl.createShader(gl.FRAGMENT_SHADER);`);
+              recording.push(`const fragmentShader${variables.fragmentShaders.length} = gl.createShader(gl.FRAGMENT_SHADER);`);
               const fragmentShader = gl.createShader(gl.FRAGMENT_SHADER);
               variables.fragmentShaders.push(fragmentShader);
               return fragmentShader
@@ -63,20 +67,20 @@ function glWiretap(gl, options) {
               throw new Error('unrecognized shader type');
             }
           case 'createTexture':
-            recording.push(`const texture${ variables.textures.length } = gl.createTexture();`);
+            recording.push(`const texture${variables.textures.length} = gl.createTexture();`);
             const texture = gl.createTexture();
             variables.textures.push(texture);
             return texture;
           case 'createFramebuffer':
-            recording.push(`const framebuffer${ variables.framebuffers.length } = gl.createFramebuffer();`);
+            recording.push(`const framebuffer${variables.framebuffers.length} = gl.createFramebuffer();`);
             const framebuffer = gl.createFramebuffer();
             variables.framebuffers.push(framebuffer);
             return framebuffer;
           case 'getExtension':
-            recording.push(`const extension${ variables.extensions.length } = gl.getExtension("${ arguments[0] }");`);
+            recording.push(`const extension${variables.extensions.length} = gl.getExtension("${arguments[0]}");`);
             const extension = glExtensionWiretap(gl.getExtension(arguments[0]), {
               recording,
-              variableName: `extension${ variables.extensions.length }`,
+              variableName: `extension${variables.extensions.length}`,
             });
             variables.extensions.push(extension);
             return extension;
@@ -150,27 +154,27 @@ function glWiretap(gl, options) {
             break;
           case 'bufferData':
             if (arguments[0] === gl.ARRAY_BUFFER) {
-              recording.push(`const bufferOutput${variables.bufferOutputs.length} = new Float32Array([${ Array.from(arguments[1]).join(',') }]);`);
-              recording.push(`gl.bufferData(gl.ARRAY_BUFFER, bufferOutput${variables.bufferOutputs.length}, ${ arguments[2] });`);
+              recording.push(`const bufferOutput${variables.bufferOutputs.length} = new Float32Array([${Array.from(arguments[1]).join(',')}]);`);
+              recording.push(`gl.bufferData(gl.ARRAY_BUFFER, bufferOutput${variables.bufferOutputs.length}, ${arguments[2]});`);
               variables.bufferOutputs.push(arguments[1]);
             } else if (arguments[0] === gl.ELEMENT_ARRAY_BUFFER) {
-              recording.push(`const bufferOutput${variables.bufferOutputs.length} = new Uint16Array([${ Array.from(arguments[1]).join(',') }]);`);
-              recording.push(`gl.bufferData(gl.ELEMENT_ARRAY_BUFFER, bufferOutput${variables.bufferOutputs.length}, ${ arguments[2] });`);
+              recording.push(`const bufferOutput${variables.bufferOutputs.length} = new Uint16Array([${Array.from(arguments[1]).join(',')}]);`);
+              recording.push(`gl.bufferData(gl.ELEMENT_ARRAY_BUFFER, bufferOutput${variables.bufferOutputs.length}, ${arguments[2]});`);
               variables.bufferOutputs.push(arguments[1]);
             } else {
               throw new Error('unrecognized buffer type');
             }
             break;
           case 'readPixels':
-            recording.push(`const pixels${ variables.pixels.length } = new Uint8Array(${ arguments[2] * arguments[3] * 4 });`);
-            recording.push(`gl.readPixels(${ arguments[0] }, ${ arguments[1] }, ${ arguments[2] }, ${ arguments[3] }, ${ arguments[4] }, ${ arguments[5] }, pixels${ variables.pixels.length});`);
+            recording.push(`const pixels${variables.pixels.length} = new Uint8Array(${arguments[2] * arguments[3] * 4});`);
+            recording.push(`gl.readPixels(${arguments[0]}, ${arguments[1]}, ${arguments[2]}, ${arguments[3]}, ${arguments[4]}, ${arguments[5]}, pixels${variables.pixels.length});`);
             if (readPixelsFile) {
-              recording.push(`let imageDatum${variables.imageData.length} = ["P3\\n# gl.ppm\\n", ${ arguments[2] }, " ", ${ arguments[3] }, "\\n255\\n"].join("");`);
+              recording.push(`let imageDatum${variables.imageData.length} = ["P3\\n# gl.ppm\\n", ${arguments[2]}, " ", ${arguments[3]}, "\\n255\\n"].join("");`);
               recording.push(`for (let i = 0; i < pixels${variables.pixels.length}.length; i += 4) {`);
-              recording.push(`  imageDatum${variables.imageData.length} += pixels${ variables.pixels.length }[i] + " " + pixels${ variables.pixels.length }[i + 1] + " " + pixels${ variables.pixels.length }[i + 2] + " ";`);
+              recording.push(`  imageDatum${variables.imageData.length} += pixels${variables.pixels.length}[i] + " " + pixels${variables.pixels.length}[i + 1] + " " + pixels${variables.pixels.length}[i + 2] + " ";`);
               recording.push('}');
               recording.push('if (typeof require !== "undefined") {');
-              recording.push(`  require("fs").writeFileSync("./${ readPixelsFile }.ppm", imageDatum${variables.imageData.length});`);
+              recording.push(`  require("fs").writeFileSync("./${readPixelsFile}.ppm", imageDatum${variables.imageData.length});`);
               recording.push('}');
               variables.imageData.push(null);
             }
@@ -189,7 +193,7 @@ function glWiretap(gl, options) {
             variables.attributeLocations.push(attributeLocation);
             return attributeLocation;
           case 'getUniformLocation':
-            recording.push(`const uniformLocation${ variables.uniformLocations.length } = gl.getUniformLocation(program${ variables.programs.indexOf(arguments[0]) }, '${ arguments[1] }');`);
+            recording.push(`const uniformLocation${variables.uniformLocations.length} = gl.getUniformLocation(program${variables.programs.indexOf(arguments[0])}, '${arguments[1]}');`);
             const uniformLocation = gl.getUniformLocation(arguments[0], arguments[1]);
             variables.uniformLocations.push(uniformLocation);
             return uniformLocation;
@@ -229,19 +233,23 @@ function glWiretap(gl, options) {
             recording.push(`gl.getProgramInfoLog(program${variables.programs.indexOf(arguments[0])});`);
             break;
           case 'bindTexture':
-            recording.push(`gl.bindTexture(${ arguments[0]}, texture${ variables.textures.indexOf(arguments[1]) });`);
+            recording.push(`gl.bindTexture(${arguments[0]}, texture${variables.textures.indexOf(arguments[1])});`);
             break;
           case 'bindFramebuffer':
-            recording.push(`gl.bindFramebuffer(${ arguments[0]}, framebuffer${ variables.framebuffers.indexOf(arguments[1]) });`);
+            if (arguments[1] === null) {
+              recording.push(`gl.bindFramebuffer(${getGLEntity(arguments[0])}, null);`);
+            } else {
+              recording.push(`gl.bindFramebuffer(${getGLEntity(arguments[0])}, framebuffer${variables.framebuffers.indexOf(arguments[1])});`);
+            }
             break;
           case 'framebufferTexture2D':
-            recording.push(`gl.framebufferTexture2D(${ arguments[0]}, ${ arguments[1] }, ${ arguments[2] }, texture${ variables.textures.indexOf(arguments[3]) }, ${ arguments[4] });`);
+            recording.push(`gl.framebufferTexture2D(${arguments[0]}, ${arguments[1]}, ${arguments[2]}, texture${variables.textures.indexOf(arguments[3])}, ${arguments[4]});`);
             break;
           case 'deleteFramebuffer':
-            recording.push(`gl.deleteFramebuffer(framebuffer${ variables.framebuffers.indexOf(arguments[0]) });`);
+            recording.push(`gl.deleteFramebuffer(framebuffer${variables.framebuffers.indexOf(arguments[0])});`);
             break;
           case 'deleteTexture':
-            recording.push(`gl.deleteTexture(texture${ variables.textures.indexOf(arguments[0]) });`);
+            recording.push(`gl.deleteTexture(texture${variables.textures.indexOf(arguments[0])});`);
             break;
           case 'uniform1fv':
           case 'uniform1iv':
@@ -251,26 +259,29 @@ function glWiretap(gl, options) {
           case 'uniform3iv':
           case 'uniform4fv':
           case 'uniform4iv':
-            recording.push(`gl.${property}(uniformLocation${ variables.uniformLocations.indexOf(arguments[0])}, ${ JSON.stringify(Array.from(arguments[1])) });`);
+            recording.push(`gl.${property}(uniformLocation${variables.uniformLocations.indexOf(arguments[0])}, ${JSON.stringify(Array.from(arguments[1]))});`);
             break;
           case 'uniform1f':
           case 'uniform1i':
-            recording.push(`gl.${property}(uniformLocation${ variables.uniformLocations.indexOf(arguments[0])}, ${ arguments[1] });`);
+            recording.push(`gl.${property}(uniformLocation${variables.uniformLocations.indexOf(arguments[0])}, ${arguments[1]});`);
             break;
           case 'uniform2f':
           case 'uniform2i':
-            recording.push(`gl.${property}(uniformLocation${ variables.uniformLocations.indexOf(arguments[0])}, ${ arguments[1] }, ${ arguments[2] });`);
+            recording.push(`gl.${property}(uniformLocation${variables.uniformLocations.indexOf(arguments[0])}, ${arguments[1]}, ${arguments[2]});`);
             break;
           case 'uniform3f':
           case 'uniform3i':
-            recording.push(`gl.${property}(uniformLocation${ variables.uniformLocations.indexOf(arguments[0])}, ${ arguments[1] }, ${ arguments[2] }, ${ arguments[3] });`);
+            recording.push(`gl.${property}(uniformLocation${variables.uniformLocations.indexOf(arguments[0])}, ${arguments[1]}, ${arguments[2]}, ${arguments[3]});`);
             break;
           case 'uniform4f':
           case 'uniform4i':
-            recording.push(`gl.${property}(uniformLocation${ variables.uniformLocations.indexOf(arguments[0])}, ${ arguments[1] }, ${ arguments[2] }, ${ arguments[3] }, ${ arguments[4] });`);
+            recording.push(`gl.${property}(uniformLocation${variables.uniformLocations.indexOf(arguments[0])}, ${arguments[1]}, ${arguments[2]}, ${arguments[3]}, ${arguments[4]});`);
+            break;
+          case 'getParameter':
+            recording.push(`gl.getParameter(${getGLEntity(arguments[0])});`);
             break;
           default:
-            recording.push(`gl.${ property }(${ argumentsToString(arguments) });`);
+            recording.push(`gl.${property}(${argumentsToString(arguments)});`);
         }
         return gl[property].apply(gl, arguments);
       }
@@ -279,6 +290,24 @@ function glWiretap(gl, options) {
   }
   function toString() {
     return recording.join('\n');
+  }
+  function getGLEntity(number) {
+    const name = glEntityNames[number];
+    if (!name) {
+      for (let extensionIndex = 0; extensionIndex < variables.extensions.length; extensionIndex++) {
+        const extension = variables.extensions[extensionIndex];
+        const extensionEntityNames = Object.getOwnPropertyNames(variables.extensions[extensionIndex]);
+        for (let extensionEntityNamesIndex = 0; extensionEntityNamesIndex < extensionEntityNames.length; extensionEntityNamesIndex++) {
+          const extensionEntityName = extensionEntityNames[extensionEntityNamesIndex];
+          if (extension[extensionEntityName] === number) {
+            return 'extension' + extensionIndex + '.' + extensionEntityName;
+          }
+        }
+      }
+      console.warn('GL entity not found');
+      return number;
+    }
+    return 'gl.' + name;
   }
 }
 
@@ -299,7 +328,7 @@ function glExtensionWiretap(extension, options) {
         switch (property) {
           case 'drawBuffersWEBGL':
             extension.drawBuffersWEBGL(arguments[0]);
-            recording.push(`${variableName}.drawBuffersWEBGL([${ Array.from(arguments).join(', ') }]);`);
+            recording.push(`${variableName}.drawBuffersWEBGL([${Array.from(arguments).join(', ')}]);`);
             return;
         }
         recording.push(`${variableName}.${property}(${argumentsToString(arguments)});`);
