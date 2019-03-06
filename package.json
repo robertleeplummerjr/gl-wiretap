@@ -1,6 +1,6 @@
 {
   "name": "gl-wiretap",
-  "version": "0.0.2",
+  "version": "0.0.3",
   "description": "listen and replay gl WebGL gpu commands ",
   "main": "index.js",
   "files": [
