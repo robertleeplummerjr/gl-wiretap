@@ -1,5 +1,7 @@
 export interface IGLWiretapOptions {
+  contextName?: string;
   readPixelsFile?: string;
+  recording?: string[];
   throwGetError?: Boolean;
   throwGetShaderParameter?: Boolean;
   throwGetProgramParameter?: Boolean;
