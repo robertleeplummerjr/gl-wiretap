@@ -52,11 +52,18 @@ const gl = glWiretap(realGL, options);
 const commands = gl.toString();
 ```
 
-## glWiretap.toString()
+## glWiretap() methods
+### glWiretap().addComment()
+Add a comment for later when calling `glWiretap().toString()`, to help human doing debugging
+ 
+### glWiretap().toString()
 This is where the gl context outputs all values as runnable javascript. 
 The value for context here is `gl` by default, for simplicity.
 But can be changed to the value of with `options.contextName`.
 Any variables created here (example: `gl.createProgram()`, or `gl.createShader(gl.VERTEX_SHADER)`) are simply constants that increment on an index to prevent collision.
+
+### glWiretap().checkThrowError()
+Causes a thrown exception when error detected from `gl` context, to help human doing debugging
 
 ## glWiretap options
 * contextName: String - A string that refers to the gl context for `glWiretap().toString()`

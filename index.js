@@ -41,12 +41,16 @@ function glWiretap(gl, options) {
   return proxy;
   function listen(obj, property) {
     if (property === 'toString') return toString;
+    if (property === 'addComment') return addComment;
+    if (property === 'checkThrowError') return checkThrowError;
     if (typeof gl[property] === 'function') {
       return function() { // need arguments from this, fyi
         switch (property) {
           case 'getError':
             if (throwGetError) {
               recording.push(`if (${contextName}.getError() !== ${contextName}.NONE) throw new Error("error");`);
+            } else {
+              recording.push(`${contextName}.getError();`); // flush out errors
             }
             break;
           case 'createProgram':
@@ -81,8 +85,10 @@ function glWiretap(gl, options) {
           case 'getExtension':
             recording.push(`const extension${variables.extensions.length} = ${contextName}.getExtension("${arguments[0]}");`);
             const extension = glExtensionWiretap(gl.getExtension(arguments[0]), {
+              gl,
               recording,
               variableName: `extension${variables.extensions.length}`,
+              variables,
             });
             variables.extensions.push(extension);
             return extension;
@@ -314,6 +320,23 @@ function glWiretap(gl, options) {
     recording.push('}');
     variables.imageData.push(null);
   }
+  function addComment(value) {
+    recording.push('// ' + value);
+  }
+  function checkThrowError() {
+    recording.push(`(() => {
+const error = ${contextName}.getError();
+if (error !== ${contextName}.NONE) {
+  const names = Object.getOwnPropertyNames(gl);
+  for (let i = 0; i < names.length; i++) {
+    const name = names[i];
+    if (${contextName}[name] === error) {
+      throw new Error('${contextName} threw ' + name);
+    }
+  }
+}
+})();`);
+  }
 }
 
 /**
@@ -324,8 +347,10 @@ function glWiretap(gl, options) {
  */
 function glExtensionWiretap(extension, options) {
   const proxy = new Proxy(extension, { get: listen });
+  const gl = options.gl;
   const recording = options.recording;
   const variableName = options.variableName;
+  const variables = options.variables;
   return proxy;
   function listen(obj, property) {
     if (typeof obj[property] === 'function') {
@@ -335,6 +360,15 @@ function glExtensionWiretap(extension, options) {
             extension.drawBuffersWEBGL(arguments[0]);
             recording.push(`${variableName}.drawBuffersWEBGL([${Array.from(arguments).join(', ')}]);`);
             return;
+          case 'getTranslatedShaderSource':
+            if (variables.vertexShaders.indexOf(arguments[0]) > -1) {
+              recording.push(`${variableName}.getTranslatedShaderSource(vertexShader${variables.vertexShaders.indexOf(arguments[0])})`);
+            } else if (variables.fragmentShaders.indexOf(arguments[0]) > -1) {
+              recording.push(`${variableName}.getTranslatedShaderSource(fragmentShader${variables.fragmentShaders.indexOf(arguments[0])})`);
+            } else {
+              throw new Error('Cannot find shader');
+            }
+            return extension.getTranslatedShaderSource(arguments[0]);
         }
         recording.push(`${variableName}.${property}(${argumentsToString(arguments)});`);
       };

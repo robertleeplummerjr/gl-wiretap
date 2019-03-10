@@ -8,11 +8,15 @@ export interface IGLWiretapOptions {
 }
 
 export interface IGLExtensionWiretapOptions {
-  variableName: string;
+  gl: GLWiretapProxy;
   recording: string[];
+  variableName: string;
+  variables: any;
 }
 
 export interface GLWiretapProxy extends WebGLRenderingContext {
+  addComment(comment: string): void;
+  checkThrowError(): void;
   toString: string;
 }
 
