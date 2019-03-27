@@ -88,8 +88,11 @@ function glWiretap(gl, options = {}) {
     }
     return value;
   }
-  function addVariable(value) {
+  function addVariable(value, source) {
+    const variableName = `${contextName}Variable${contextVariables.length}`;
+    recording.push(`const ${variableName} = ${source};`);
     contextVariables.push(value);
+    return variableName;
   }
   function writePPM(width, height) {
     const sourceVariable = `${contextName}Variable${contextVariables.length}`;
