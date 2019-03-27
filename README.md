@@ -1,5 +1,6 @@
 # gl-wiretap
 A gl debugger that listens and replays gl (WebGL, WebGL2, and HeadlessGL) gpu commands
+Generally manually tested by injecting in tests on https://www.khronos.org/registry/webgl/sdk/tests/webgl-conformance-tests.html using Chrome or Firefox.
 
 ## Example
 ```js
