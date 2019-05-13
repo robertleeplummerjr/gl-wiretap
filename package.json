@@ -1,6 +1,6 @@
 {
   "name": "gl-wiretap",
-  "version": "0.2.1",
+  "version": "0.3.0",
   "description": "A gl debugger that listens and replays gl (WebGL, WebGL2, and HeadlessGL) gpu commands",
   "main": "index.js",
   "files": [
@@ -8,7 +8,7 @@
     "index.d.ts"
   ],
   "scripts": {
-    "test": "echo \"Error: no test specified\" && exit 1"
+    "test": "nyc --reporter=html mocha && open coverage/index.html"
   },
   "repository": {
     "type": "git",
@@ -31,5 +31,10 @@
   "bugs": {
     "url": "https://github.com/robertleeplummerjr/gl-wiretap/issues"
   },
-  "homepage": "https://github.com/robertleeplummerjr/gl-wiretap#readme"
+  "homepage": "https://github.com/robertleeplummerjr/gl-wiretap#readme",
+  "devDependencies": {
+    "mocha": "^6.1.4",
+    "nyc": "^14.1.1",
+    "sinon": "^7.3.2"
+  }
 }

@@ -1,76 +1,106 @@
 /**
  *
  * @param {WebGLRenderingContext} gl
- * @param {IGLWiretapOptions} options?
- * @returns {WebGLRenderingContext}
+ * @param {IGLWiretapOptions} [options]
+ * @returns {GLWiretapProxy}
  */
 function glWiretap(gl, options = {}) {
   const {
     contextName = 'gl',
     throwGetError,
-    useTrackableNumbers,
+    useTrackablePrimitives,
     readPixelsFile,
     recording = [],
+    variables = {},
   } = options;
   const proxy = new Proxy(gl, { get: listen });
   const contextVariables = [];
   const entityNames = {};
   let imageCount = 0;
+  let indent = '';
+  let readPixelsVariableName;
   return proxy;
   function listen(obj, property) {
-    if (property === 'toString') return toString;
-    if (property === 'addComment') return addComment;
-    if (property === 'checkThrowError') return checkThrowError;
+    switch (property) {
+      case 'addComment': return addComment;
+      case 'checkThrowError': return checkThrowError;
+      case 'getReadPixelsVariableName': return readPixelsVariableName;
+      case 'insertVariable': return insertVariable;
+      case 'reset': return reset;
+      case 'setIndent': return setIndent;
+      case 'toString': return toString;
+    }
     if (typeof gl[property] === 'function') {
       return function() { // need arguments from this, fyi
         switch (property) {
           case 'getError':
             if (throwGetError) {
-              recording.push(`if (${contextName}.getError() !== ${contextName}.NONE) throw new Error('error');`);
+              recording.push(`${indent}if (${contextName}.getError() !== ${contextName}.NONE) throw new Error('error');`);
             } else {
-              recording.push(`${contextName}.getError();`); // flush out errors
+              recording.push(`${indent}${contextName}.getError();`); // flush out errors
             }
             return gl.getError();
           case 'getExtension':
             const variableName = `${contextName}Variables${contextVariables.length}`;
-            recording.push(`const ${variableName} = ${contextName}.getExtension('${arguments[0]}');`);
-            const extension = glExtensionWiretap(gl.getExtension(arguments[0]), {
-              getEntity,
-              useTrackableNumbers,
-              recording,
-              contextName: variableName,
-              contextVariables,
-            });
-            contextVariables.push(extension);
+            recording.push(`${indent}const ${variableName} = ${contextName}.getExtension('${arguments[0]}');`);
+            const extension = gl.getExtension(arguments[0]);
+            if (extension && typeof extension === 'object') {
+              const tappedExtension = glExtensionWiretap(extension, {
+                getEntity,
+                useTrackablePrimitives,
+                recording,
+                contextName: variableName,
+                contextVariables,
+                variables,
+                indent,
+              });
+              contextVariables.push(tappedExtension);
+              return tappedExtension;
+            } else {
+              contextVariables.push(null);
+            }
             return extension;
           case 'readPixels':
             const i = contextVariables.indexOf(arguments[6]);
             let targetVariableName;
             if (i === -1) {
-              targetVariableName = `${contextName}Variable${contextVariables.length}`;
-              recording.push(`const ${targetVariableName} = new ${arguments[6].constructor.name}(${arguments[6].length});`);
-              contextVariables.push(arguments[6]);
+              const variableName = getVariableName(arguments[6]);
+              if (variableName) {
+                targetVariableName = variableName;
+                recording.push(`${indent}${variableName}`);
+              } else {
+                targetVariableName = `${contextName}Variable${contextVariables.length}`;
+                contextVariables.push(arguments[6]);
+                recording.push(`${indent}const ${targetVariableName} = new ${arguments[6].constructor.name}(${arguments[6].length});`);
+              }
             } else {
               targetVariableName = `${contextName}Variable${i}`;
             }
-            recording.push(`${contextName}.readPixels(${arguments[0]}, ${arguments[1]}, ${arguments[2]}, ${arguments[3]}, ${getEntity(arguments[4])}, ${getEntity(arguments[5])}, ${targetVariableName});`);
+            readPixelsVariableName = targetVariableName;
+            recording.push(`${indent}${contextName}.readPixels(${arguments[0]}, ${arguments[1]}, ${arguments[2]}, ${arguments[3]}, ${getEntity(arguments[4])}, ${getEntity(arguments[5])}, ${targetVariableName});`);
             if (readPixelsFile) {
               writePPM(arguments[2], arguments[3]);
             }
             return gl.readPixels.apply(gl, arguments);
           case 'drawBuffers':
-            recording.push(`${contextName}.drawBuffers([${argumentsToString(arguments[0], { contextName, contextVariables, getEntity, addVariable } )}]);`);
+            recording.push(`${indent}${contextName}.drawBuffers([${argumentsToString(arguments[0], { contextName, contextVariables, getEntity, addVariable, variables } )}]);`);
             return gl.drawBuffers(arguments[0]);
         }
         let result = gl[property].apply(gl, arguments);
-        if (typeof result !== 'undefined' && contextVariables.indexOf(result) === -1) {
-          if (typeof result === 'number' && useTrackableNumbers) {
-            contextVariables.push(result = trackableNumber(result));
-          }
-          recording.push(`const ${contextName}Variable${contextVariables.length} = ${methodCallToString(property, arguments)};`);
-          contextVariables.push(result);
-        } else {
-          recording.push(`${methodCallToString(property, arguments)};`);
+        switch (typeof result) {
+          case 'undefined':
+            recording.push(`${indent}${methodCallToString(property, arguments)};`);
+            return;
+          case 'number':
+          case 'boolean':
+            if (useTrackablePrimitives && contextVariables.indexOf(trackablePrimitive(result)) === -1) {
+              recording.push(`${indent}const ${contextName}Variable${contextVariables.length} = ${methodCallToString(property, arguments)};`);
+              contextVariables.push(result = trackablePrimitive(result));
+              break;
+            }
+          default:
+            recording.push(`${indent}const ${contextName}Variable${contextVariables.length} = ${methodCallToString(property, arguments)};`);
+            contextVariables.push(result);
         }
         return result;
       }
@@ -81,6 +111,14 @@ function glWiretap(gl, options = {}) {
   function toString() {
     return recording.join('\n');
   }
+  function reset() {
+    while (recording.length > 0) {
+      recording.pop();
+    }
+  }
+  function insertVariable(name, value) {
+    variables[name] = value;
+  }
   function getEntity(value) {
     const name = entityNames[value];
     if (name) {
@@ -88,43 +126,57 @@ function glWiretap(gl, options = {}) {
     }
     return value;
   }
+  function setIndent(spaces) {
+    indent = ' '.repeat(spaces);
+  }
   function addVariable(value, source) {
     const variableName = `${contextName}Variable${contextVariables.length}`;
-    recording.push(`const ${variableName} = ${source};`);
     contextVariables.push(value);
+    recording.push(`${indent}const ${variableName} = ${source};`);
     return variableName;
   }
   function writePPM(width, height) {
     const sourceVariable = `${contextName}Variable${contextVariables.length}`;
     const imageVariable = `imageDatum${imageCount}`;
-    recording.push(`let ${imageVariable} = ["P3\\n# ${readPixelsFile}.ppm\\n", ${width}, ' ', ${height}, "\\n255\\n"].join("");`);
-    recording.push(`for (let i = 0; i < ${imageVariable}.length; i += 4) {`);
-    recording.push(`  ${imageVariable} += ${sourceVariable}[i] + ' ' + ${sourceVariable}[i + 1] + ' ' + ${sourceVariable}[i + 2] + ' ';`);
-    recording.push('}');
-    recording.push('if (typeof require !== "undefined") {');
-    recording.push(`  require('fs').writeFileSync('./${readPixelsFile}.ppm', ${imageVariable});`);
-    recording.push('}');
+    recording.push(`${indent}let ${imageVariable} = ["P3\\n# ${readPixelsFile}.ppm\\n", ${width}, ' ', ${height}, "\\n255\\n"].join("");`);
+    recording.push(`${indent}for (let i = 0; i < ${imageVariable}.length; i += 4) {`);
+    recording.push(`${indent}  ${imageVariable} += ${sourceVariable}[i] + ' ' + ${sourceVariable}[i + 1] + ' ' + ${sourceVariable}[i + 2] + ' ';`);
+    recording.push(`${indent}}`);
+    recording.push(`${indent}if (typeof require !== "undefined") {`);
+    recording.push(`${indent}  require('fs').writeFileSync('./${readPixelsFile}.ppm', ${imageVariable});`);
+    recording.push(`${indent}}`);
     imageCount++;
   }
   function addComment(value) {
-    recording.push('// ' + value);
+    recording.push(`${indent}// ${value}`);
   }
   function checkThrowError() {
-    recording.push(`(() => {
-const error = ${contextName}.getError();
-if (error !== ${contextName}.NONE) {
-  const names = Object.getOwnPropertyNames(gl);
-  for (let i = 0; i < names.length; i++) {
-    const name = names[i];
-    if (${contextName}[name] === error) {
-      throw new Error('${contextName} threw ' + name);
-    }
-  }
-}
-})();`);
+    recording.push(`${indent}(() => {
+${indent}const error = ${contextName}.getError();
+${indent}if (error !== ${contextName}.NONE) {
+${indent}  const names = Object.getOwnPropertyNames(gl);
+${indent}  for (let i = 0; i < names.length; i++) {
+${indent}    const name = names[i];
+${indent}    if (${contextName}[name] === error) {
+${indent}      throw new Error('${contextName} threw ' + name);
+${indent}    }
+${indent}  }
+${indent}}
+${indent}})();`);
   }
   function methodCallToString(method, args) {
-    return `${contextName}.${method}(${argumentsToString(args, { contextName, contextVariables, getEntity, addVariable })})`;
+    return `${contextName}.${method}(${argumentsToString(args, { contextName, contextVariables, getEntity, addVariable, variables })})`;
+  }
+
+  function getVariableName(value) {
+    if (variables) {
+      for (const name in variables) {
+        if (variables[name] === value) {
+          return name;
+        }
+      }
+    }
+    return null;
   }
 }
 
@@ -141,8 +193,10 @@ function glExtensionWiretap(extension, options) {
     contextName,
     contextVariables,
     getEntity,
-    useTrackableNumbers,
-    recording
+    useTrackablePrimitives,
+    recording,
+    variables,
+    indent,
   } = options;
   return proxy;
   function listen(obj, property) {
@@ -150,18 +204,27 @@ function glExtensionWiretap(extension, options) {
       return function() {
         switch (property) {
           case 'drawBuffersWEBGL':
-            recording.push(`${contextName}.drawBuffersWEBGL([${argumentsToString(arguments[0], { contextName, contextVariables, getEntity: getExtensionEntity, addVariable })}]);`);
+            recording.push(`${indent}${contextName}.drawBuffersWEBGL([${argumentsToString(arguments[0], { contextName, contextVariables, getEntity: getExtensionEntity, addVariable, variables })}]);`);
             return extension.drawBuffersWEBGL(arguments[0]);
         }
         let result = extension[property].apply(extension, arguments);
-        if (typeof result !== 'undefined' && contextVariables.indexOf(result) === -1) {
-          if (useTrackableNumbers && typeof result === 'number') {
-            contextVariables.push(result = trackableNumber(result));
-          }
-          recording.push(`const ${contextName}Variable${contextVariables.length} = ${methodCallToString(property, arguments)};`);
-          contextVariables.push(result);
-        } else {
-          recording.push(`${methodCallToString(property, arguments)};`);
+        switch (typeof result) {
+          case 'undefined':
+            recording.push(`${indent}${methodCallToString(property, arguments)};`);
+            return;
+          case 'number':
+          case 'boolean':
+            if (useTrackablePrimitives && contextVariables.indexOf(trackablePrimitive(result)) === -1) {
+              recording.push(`${indent}const ${contextName}Variable${contextVariables.length} = ${methodCallToString(property, arguments)};`);
+              contextVariables.push(result = trackablePrimitive(result));
+            } else {
+              recording.push(`${indent}const ${contextName}Variable${contextVariables.length} = ${methodCallToString(property, arguments)};`);
+              contextVariables.push(result);
+            }
+            break;
+          default:
+            recording.push(`${indent}const ${contextName}Variable${contextVariables.length} = ${methodCallToString(property, arguments)};`);
+            contextVariables.push(result);
         }
         return result;
       };
@@ -171,25 +234,44 @@ function glExtensionWiretap(extension, options) {
   }
 
   function getExtensionEntity(value) {
-    return extensionEntityNames[value] || getEntity(value);
+    if (extensionEntityNames.hasOwnProperty(value)) {
+      return `${contextName}.${extensionEntityNames[value]}`;
+    }
+    return getEntity(value);
   }
 
   function methodCallToString(method, args) {
-    return `${contextName}.${method}(${argumentsToString(args, { contextName, contextVariables, getEntity: getExtensionEntity, addVariable })})`;
+    return `${contextName}.${method}(${argumentsToString(args, { contextName, contextVariables, getEntity: getExtensionEntity, addVariable, variables })})`;
   }
 
   function addVariable(value, source) {
     const variableName = `${contextName}Variable${contextVariables.length}`;
-    recording.push(`const ${variableName} = ${source};`);
     contextVariables.push(value);
+    recording.push(`${indent}const ${variableName} = ${source};`);
     return variableName;
   }
 }
 
 function argumentsToString(args, options) {
+  const { variables } = options;
   return (Array.from(args).map((arg) => {
+    const variableName = getVariableName(arg);
+    if (variableName) {
+      return variableName;
+    }
     return argumentToString(arg, options);
-  }).join(', '))
+  }).join(', '));
+
+  function getVariableName(value) {
+    if (variables) {
+      for (const name in variables) {
+        if (variables[name] === value) {
+          return name;
+        }
+      }
+    }
+    return null;
+  }
 }
 
 function argumentToString(arg, options) {
@@ -218,11 +300,22 @@ function argumentToString(arg, options) {
       } else {
         return '\'' + arg + '\'';
       }
-    case 'Number':
+    case 'Number': {
       const name = getEntity(arg);
       return name || arg;
-    case 'Boolean':
-      return arg ? 'true' : 'false';
+    }
+    case 'Boolean': {
+      const name = getEntity(arg);
+      return name || (arg ? 'true' : 'false');
+    }
+    case 'WebGLBuffer': {
+      const name = getEntity(arg);
+      if (name) {
+        return name;
+      } else {
+        throw new Error('argument not found');
+      }
+    }
     case 'Array':
       return JSON.stringify(Array.from(arg));
     case 'Float32Array':
@@ -236,9 +329,9 @@ function argumentToString(arg, options) {
   }
 }
 
-function trackableNumber(number) {
+function trackablePrimitive(value) {
   // wrapped in object, so track-able
-  return new Number(number);
+  return new value.constructor(value);
 }
 
 if (typeof module !== 'undefined') {

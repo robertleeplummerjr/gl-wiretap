@@ -5,21 +5,25 @@ export interface IGLWiretapOptions {
   throwGetError?: Boolean;
   throwGetShaderParameter?: Boolean;
   throwGetProgramParameter?: Boolean;
-  useTrackableNumbers?: Boolean;
+  useTrackablePrimitives?: Boolean;
 }
 
 export interface IGLExtensionWiretapOptions {
   contextName: string;
   contextVariables: any[];
   getEntity: (value: number) => string | number;
-  useTrackableNumbers?: Boolean;
+  useTrackablePrimitives?: Boolean;
   recording: string[];
 }
 
 export interface GLWiretapProxy extends WebGLRenderingContext {
   addComment(comment: string): void;
   checkThrowError(): void;
-  toString: string;
+  getReadPixelsVariableName(): string;
+  insertVariable(name: string, value: any): void;
+  reset(): void;
+  setIndent(spaces: number): void;
+  toString(): string;
 }
 
 export function glWiretap(gl: WebGLRenderingContext, options?: IGLWiretapOptions): GLWiretapProxy;

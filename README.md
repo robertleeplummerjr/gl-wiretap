@@ -1,6 +1,5 @@
 # gl-wiretap
 A gl debugger that listens and replays gl (WebGL, WebGL2, and HeadlessGL) gpu commands
-Generally manually tested by injecting in tests on https://www.khronos.org/registry/webgl/sdk/tests/webgl-conformance-tests.html using Chrome or Firefox.
 
 ## Example
 ```js
@@ -56,9 +55,9 @@ const commands = gl.toString();
 ## glWiretap() methods
 ### glWiretap().addComment()
 Add a comment for later when calling `glWiretap().toString()`, to help human doing debugging
- 
+
 ### glWiretap().toString()
-This is where the gl context outputs all values as runnable javascript. 
+This is where the gl context outputs all values as runnable javascript.
 The value for context here is `gl` by default, for simplicity.
 But can be changed to the value of with `options.contextName`.
 Any variables created here (example: `gl.createProgram()`, or `gl.createShader(gl.VERTEX_SHADER)`) are simply constants that increment on an index to prevent collision.
@@ -68,7 +67,7 @@ Causes a thrown exception when error detected from `gl` context, to help human d
 
 ## glWiretap options
 * contextName: String - A string that refers to the gl context for `glWiretap().toString()`
-* recording: String[] - A array of strings that 
+* recording: String[] - A array of strings that
 * readPixelsFile: String - When set, writes a file by this name to the current directory when on node HeadlessGL using readPixels
 * throwGetError: Boolean - Causes `gl.getError()` to throw if there is an error
 * throwGetShaderParameter: Boolean - Causes `gl.getShaderParameter()` to throw if there is an error
