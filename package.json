@@ -8,7 +8,8 @@
     "index.d.ts"
   ],
   "scripts": {
-    "test": "nyc --reporter=html mocha && open coverage/index.html"
+    "test": "mocha",
+    "coverage": "nyc --reporter=html mocha && open coverage/index.html"
   },
   "repository": {
     "type": "git",
