@@ -2,7 +2,7 @@ const { glWiretap } = require('../index');
 const sinon = require('sinon');
 const { assert } = sinon;
 describe('end-to-end', () => {
-  it('void fn', () => {
+  it('void function', () => {
     const aVoid = sinon.spy();
     const gl = {
       aVoid,
@@ -12,7 +12,7 @@ describe('end-to-end', () => {
     assert.calledWith(gl.aVoid);
     assert.match(context.toString(), 'gl.aVoid();');
   });
-  it('void fn with 1 boolean argument', () => {
+  it('void function with 1 boolean argument', () => {
     const aVoid = sinon.spy();
     const gl = {
       aVoid,
@@ -22,7 +22,39 @@ describe('end-to-end', () => {
     assert.calledWith(gl.aVoid, true);
     assert.match(context.toString(), 'gl.aVoid(true);');
   });
-  it('bool fn', () => {
+  it('undefined function with useTrackablePrimitives = true', () => {
+    const anUndefined = sinon.spy(() => undefined);
+    const aVoid = sinon.spy();
+    const gl = {
+      anUndefined,
+      aVoid,
+    };
+    const context = glWiretap(gl, {
+      useTrackablePrimitives: true,
+    });
+    const result = context.anUndefined();
+    context.aVoid(result);
+    assert.calledWith(gl.aVoid, result);
+    assert.match(context.toString(), 'gl.anUndefined();'
+      + '\ngl.aVoid(undefined);');
+  });
+  it('null function with useTrackablePrimitives = true', () => {
+    const aNull = sinon.spy(() => null);
+    const aVoid = sinon.spy();
+    const gl = {
+      aNull,
+      aVoid,
+    };
+    const context = glWiretap(gl, {
+      useTrackablePrimitives: true,
+    });
+    const result = context.aNull();
+    context.aVoid(result);
+    assert.calledWith(gl.aVoid, result);
+    assert.match(context.toString(), 'gl.aNull();'
+      + '\ngl.aVoid(null);');
+  });
+  it('bool function with useTrackablePrimitives = true', () => {
     const aBool = sinon.spy(() => true);
     const aVoid = sinon.spy();
     const gl = {
@@ -38,7 +70,7 @@ describe('end-to-end', () => {
     assert.match(context.toString(), 'const glVariable0 = gl.aBool();'
       + '\ngl.aVoid(glVariable0);');
   });
-  it('number fn', () => {
+  it('number function with useTrackablePrimitives = true', () => {
     const aNumber = sinon.spy(() => 123);
     const aVoid = sinon.spy();
     const gl = {
@@ -54,7 +86,7 @@ describe('end-to-end', () => {
     assert.match(context.toString(), 'const glVariable0 = gl.aNumber();'
       + '\ngl.aVoid(glVariable0);');
   });
-  it('void fn with 1 number argument', () => {
+  it('void function with 1 number argument', () => {
     const aVoid = sinon.spy();
     const gl = {
       aVoid,
@@ -64,7 +96,7 @@ describe('end-to-end', () => {
     assert.calledWith(gl.aVoid, 123);
     assert.match(context.toString(), 'gl.aVoid(123);');
   });
-  it('void fn with 1 number argument', () => {
+  it('void function with 1 number argument', () => {
     const aVoid = sinon.spy();
     const gl = {
       aVoid,
@@ -74,7 +106,7 @@ describe('end-to-end', () => {
     assert.calledWith(gl.aVoid, 123);
     assert.match(context.toString(), 'gl.aVoid(123);');
   });
-  it('void fn with 1 single quote string argument', () => {
+  it('void function with 1 single quote string argument', () => {
     const aVoid = sinon.spy();
     const gl = {
       aVoid,
@@ -84,7 +116,7 @@ describe('end-to-end', () => {
     assert.calledWith(gl.aVoid, '123');
     assert.match(context.toString(), 'gl.aVoid(\'123\');');
   });
-  it('void fn with 1 single quote inside string argument', () => {
+  it('void function with 1 single quote inside string argument', () => {
     const aVoid = sinon.spy();
     const gl = {
       aVoid,
@@ -94,7 +126,7 @@ describe('end-to-end', () => {
     assert.calledWith(gl.aVoid, "1'23");
     assert.match(context.toString(), 'gl.aVoid("1\'23");');
   });
-  it('void fn with 1 double quote inside string argument', () => {
+  it('void function with 1 double quote inside string argument', () => {
     const aVoid = sinon.spy();
     const gl = {
       aVoid,
@@ -104,7 +136,7 @@ describe('end-to-end', () => {
     assert.calledWith(gl.aVoid, '1"23');
     assert.match(context.toString(), 'gl.aVoid(\'1"23\');');
   });
-  it('void fn with 1 multi-line string argument', () => {
+  it('void function with 1 multi-line string argument', () => {
     const aVoid = sinon.spy();
     const gl = {
       aVoid,
@@ -120,7 +152,19 @@ describe('end-to-end', () => {
 2
 3\`);`);
   });
-  it('void fn with 1 object argument', () => {
+  it('void function with 1 Array argument', () => {
+    const aVoid = sinon.spy();
+    const gl = {
+      aVoid
+    };
+    const context = glWiretap(gl);
+    const array = [1,2,3,4];
+    context.aVoid(array);
+    assert.calledWith(gl.aVoid);
+    assert.match(context.toString(), 'const glVariable0 = new Array(1,2,3,4);'
+      + '\ngl.aVoid(glVariable0);');
+  });
+  it('void function with 1 Float32Array argument', () => {
     const aVoid = sinon.spy();
     const gl = {
       aVoid
@@ -131,7 +175,26 @@ describe('end-to-end', () => {
     assert.match(context.toString(), 'const glVariable0 = new Float32Array([0]);'
       + '\ngl.aVoid(glVariable0);');
   });
-
+  it('void function with 1 number argument', () => {
+    const aVoid = sinon.spy();
+    const gl = {
+      aVoid
+    };
+    const context = glWiretap(gl);
+    context.aVoid(1);
+    assert.calledWith(gl.aVoid);
+    assert.match(context.toString(), 'gl.aVoid(1);');
+  });
+  it('void function with 1 boolean argument', () => {
+    const aVoid = sinon.spy();
+    const gl = {
+      aVoid
+    };
+    const context = glWiretap(gl);
+    context.aVoid(true);
+    assert.calledWith(gl.aVoid);
+    assert.match(context.toString(), 'gl.aVoid(true);');
+  });
   it('getParameter', () => {
     const getParameter = sinon.spy(() => true);
     const gl = {
@@ -182,6 +245,44 @@ describe('end-to-end', () => {
     context.readPixels(0, 0, 2, 3, context.RGBA, context.FLOAT, new Array(3));
     assert.calledWith(gl.readPixels);
     assert.match(context.toString(), 'const glVariable0 = new Array(3);'
+      + '\ngl.readPixels(0, 0, 2, 3, gl.RGBA, gl.FLOAT, glVariable0);');
+  });
+  it('readPixels with use of readPixelsFile', () => {
+    const readPixels = sinon.spy();
+    const gl = {
+      readPixels,
+      RGBA: 123,
+      FLOAT: 124,
+    };
+    const context = glWiretap(gl, {
+      readPixelsFile: './test/index'
+    });
+    context.readPixels(0, 0, 2, 3, context.RGBA, context.FLOAT, new Array(3));
+    assert.calledWith(gl.readPixels);
+    assert.match(context.toString(), 'const glVariable0 = new Array(3);'
+      + '\ngl.readPixels(0, 0, 2, 3, gl.RGBA, gl.FLOAT, glVariable0);'
+      + '\nlet imageDatum0 = ["P3\\n# ./test/index.ppm\\n", 2, \' \', 3, "\\n255\\n"].join("");\n' +
+      'for (let i = 0; i < imageDatum0.length; i += 4) {\n' +
+      '  imageDatum0 += glVariable1[i] + \' \' + glVariable1[i + 1] + \' \' + glVariable1[i + 2] + \' \';\n' +
+      '}\n' +
+      'if (typeof require !== "undefined") {\n' +
+      '  require(\'fs\').writeFileSync(\'././test/index.ppm\', imageDatum0);\n' +
+      '}');
+  });
+  it('readPixels reuse of context variable', () => {
+    const readPixels = sinon.spy();
+    const gl = {
+      readPixels,
+      RGBA: 123,
+      FLOAT: 124,
+    };
+    const context = glWiretap(gl);
+    const contextVariable = new Array(3);
+    context.readPixels(0, 0, 2, 3, context.RGBA, context.FLOAT, contextVariable);
+    context.readPixels(0, 0, 2, 3, context.RGBA, context.FLOAT, contextVariable);
+    assert.calledWith(gl.readPixels);
+    assert.match(context.toString(), 'const glVariable0 = new Array(3);'
+      + '\ngl.readPixels(0, 0, 2, 3, gl.RGBA, gl.FLOAT, glVariable0);'
       + '\ngl.readPixels(0, 0, 2, 3, gl.RGBA, gl.FLOAT, glVariable0);');
   });
   it('readPixels with variableName', () => {
@@ -338,5 +439,109 @@ describe('end-to-end', () => {
     ];
     context.drawBuffers(buffers);
     assert.match(context.toString(), 'gl.drawBuffers([gl.COLOR_ATTACHMENT0_WEBGL, gl.COLOR_ATTACHMENT1_WEBGL, gl.COLOR_ATTACHMENT2_WEBGL, gl.COLOR_ATTACHMENT3_WEBGL]);');
+  });
+  it('undefined extension function', () => {
+    const anUndefined = sinon.spy(() => {});
+    const anExtension = {
+      anUndefined
+    };
+    const gl = {
+      getExtension: () => anExtension
+    };
+    const context = glWiretap(gl);
+    const extension = context.getExtension('an-extension');
+    extension.anUndefined();
+    assert.match(context.toString(), 'const glVariables0 = gl.getExtension(\'an-extension\');' +
+      '\nglVariables0.anUndefined();');
+  });
+  it('null extension function', () => {
+    const aNull = sinon.spy(() => null);
+    const anExtension = {
+      aNull
+    };
+    const gl = {
+      getExtension: () => anExtension
+    };
+    const context = glWiretap(gl);
+    const extension = context.getExtension('an-extension');
+    extension.aNull();
+    assert.match(context.toString(), 'const glVariables0 = gl.getExtension(\'an-extension\');' +
+      '\nglVariables0.aNull();');
+  });
+  it('boolean extension function', () => {
+    const aBoolean = sinon.spy(() => true);
+    const anExtension = {
+      aBoolean
+    };
+    const gl = {
+      getExtension: () => anExtension
+    };
+    const context = glWiretap(gl);
+    const extension = context.getExtension('an-extension');
+    extension.aBoolean();
+    assert.match(context.toString(), 'const glVariables0 = gl.getExtension(\'an-extension\');' +
+      '\nconst glVariables0Variable1 = glVariables0.aBoolean();');
+  });
+  it('boolean extension function with useTrackablePrimitives = true', () => {
+    const aBoolean = sinon.spy(() => true);
+    const anExtension = {
+      aBoolean
+    };
+    const gl = {
+      getExtension: () => anExtension
+    };
+    const context = glWiretap(gl, {
+      useTrackablePrimitives: true,
+    });
+    const extension = context.getExtension('an-extension');
+    extension.aBoolean();
+    assert.match(context.toString(), 'const glVariables0 = gl.getExtension(\'an-extension\');' +
+      '\nconst glVariables0Variable1 = glVariables0.aBoolean();');
+  });
+  it('number extension function', () => {
+    const aNumber = sinon.spy(() => 1);
+    const anExtension = {
+      aNumber
+    };
+    const gl = {
+      getExtension: () => anExtension
+    };
+    const context = glWiretap(gl);
+    const extension = context.getExtension('an-extension');
+    extension.aNumber();
+    assert.match(context.toString(), 'const glVariables0 = gl.getExtension(\'an-extension\');' +
+      '\nconst glVariables0Variable1 = glVariables0.aNumber();');
+  });
+  it('number extension function with ', () => {
+    const aNumber = sinon.spy(() => 1);
+    const anExtension = {
+      aNumber
+    };
+    const gl = {
+      getExtension: () => anExtension
+    };
+    const context = glWiretap(gl, {
+      useTrackablePrimitives: true,
+    });
+    const extension = context.getExtension('an-extension');
+    extension.aNumber();
+    assert.match(context.toString(), 'const glVariables0 = gl.getExtension(\'an-extension\');' +
+      '\nconst glVariables0Variable1 = glVariables0.aNumber();');
+  });
+  it('object extension function', () => {
+    const anObject = sinon.spy(() => {
+      return {};
+    });
+    const anExtension = {
+      anObject
+    };
+    const gl = {
+      getExtension: () => anExtension
+    };
+    const context = glWiretap(gl);
+    const extension = context.getExtension('an-extension');
+    extension.anObject();
+    assert.match(context.toString(), 'const glVariables0 = gl.getExtension(\'an-extension\');' +
+      '\nconst glVariables0Variable1 = glVariables0.anObject();');
   });
 });

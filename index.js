@@ -40,7 +40,7 @@ function glWiretap(gl, options = {}) {
               recording.push(`${indent}${contextName}.getError();`); // flush out errors
             }
             return gl.getError();
-          case 'getExtension':
+          case 'getExtension': {
             const variableName = `${contextName}Variables${contextVariables.length}`;
             recording.push(`${indent}const ${variableName} = ${contextName}.getExtension('${arguments[0]}');`);
             const extension = gl.getExtension(arguments[0]);
@@ -60,6 +60,7 @@ function glWiretap(gl, options = {}) {
               contextVariables.push(null);
             }
             return extension;
+          }
           case 'readPixels':
             const i = contextVariables.indexOf(arguments[6]);
             let targetVariableName;
@@ -99,7 +100,12 @@ function glWiretap(gl, options = {}) {
               break;
             }
           default:
-            recording.push(`${indent}const ${contextName}Variable${contextVariables.length} = ${methodCallToString(property, arguments)};`);
+            if (result === null) {
+              recording.push(`${methodCallToString(property, arguments)};`);
+            } else {
+              recording.push(`${indent}const ${contextName}Variable${contextVariables.length} = ${methodCallToString(property, arguments)};`);
+            }
+
             contextVariables.push(result);
         }
         return result;
@@ -131,8 +137,8 @@ function glWiretap(gl, options = {}) {
   }
   function addVariable(value, source) {
     const variableName = `${contextName}Variable${contextVariables.length}`;
-    contextVariables.push(value);
     recording.push(`${indent}const ${variableName} = ${source};`);
+    contextVariables.push(value);
     return variableName;
   }
   function writePPM(width, height) {
@@ -223,7 +229,11 @@ function glExtensionWiretap(extension, options) {
             }
             break;
           default:
-            recording.push(`${indent}const ${contextName}Variable${contextVariables.length} = ${methodCallToString(property, arguments)};`);
+            if (result === null) {
+              recording.push(`${methodCallToString(property, arguments)};`);
+            } else {
+              recording.push(`${indent}const ${contextName}Variable${contextVariables.length} = ${methodCallToString(property, arguments)};`);
+            }
             contextVariables.push(result);
         }
         return result;
@@ -300,31 +310,16 @@ function argumentToString(arg, options) {
       } else {
         return '\'' + arg + '\'';
       }
-    case 'Number': {
-      const name = getEntity(arg);
-      return name || arg;
-    }
-    case 'Boolean': {
-      const name = getEntity(arg);
-      return name || (arg ? 'true' : 'false');
-    }
-    case 'WebGLBuffer': {
-      const name = getEntity(arg);
-      if (name) {
-        return name;
-      } else {
-        throw new Error('argument not found');
-      }
-    }
+    case 'Number': return getEntity(arg);
+    case 'Boolean': return getEntity(arg);
     case 'Array':
-      return JSON.stringify(Array.from(arg));
+      return addVariable(arg, `new ${arg.constructor.name}(${Array.from(arg).join(',')})`);
     case 'Float32Array':
     case 'Uint8Array':
     case 'Uint16Array':
     case 'Int32Array':
       return addVariable(arg, `new ${arg.constructor.name}(${JSON.stringify(Array.from(arg))})`);
     default:
-      debugger;
       throw new Error('unrecognized argument');
   }
 }
