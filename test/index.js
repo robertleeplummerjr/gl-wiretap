@@ -313,6 +313,23 @@ describe('end-to-end', () => {
       + '\ngl.readPixels(0, 0, 2, 3, gl.RGBA, gl.FLOAT, glVariable0);');
     assert.match(context.getReadPixelsVariableName, 'glVariable0');
   });
+  it('onReadPixels', () => {
+    const readPixels = sinon.spy();
+    const gl = {
+      readPixels,
+      RGBA: 123,
+      FLOAT: 124,
+    };
+    const onReadPixels = sinon.spy();
+    const context = glWiretap(gl, {
+      onReadPixels,
+    });
+    context.readPixels(0, 0, 2, 3, context.RGBA, context.FLOAT, new Array(3));
+    assert.calledWith(gl.readPixels);
+    assert.match(context.toString(), 'const glVariable0 = new Array(3);'
+      + '\ngl.readPixels(0, 0, 2, 3, gl.RGBA, gl.FLOAT, glVariable0);');
+    assert.calledWith(onReadPixels, 'glVariable0', [0, 0, 2, 3, 'gl.RGBA', 'gl.FLOAT', 'glVariable0']);
+  });
   it('addComment', () => {
     const gl = {};
     const context = glWiretap(gl);

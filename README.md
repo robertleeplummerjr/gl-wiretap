@@ -72,6 +72,7 @@ Causes a thrown exception when error detected from `gl` context, to help human d
 * throwGetError: Boolean - Causes `gl.getError()` to throw if there is an error
 * throwGetShaderParameter: Boolean - Causes `gl.getShaderParameter()` to throw if there is an error
 * throwGetProgramParameter: Boolean - Causes `gl.getProgramParameter()` to throw if there is an error
+* onReadPixels: Function(targetName, argumentAsStrings);
 
 ## Typescript support
 By default, typescript is supported

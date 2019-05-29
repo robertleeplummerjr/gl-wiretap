@@ -6,6 +6,7 @@ export interface IGLWiretapOptions {
   throwGetShaderParameter?: Boolean;
   throwGetProgramParameter?: Boolean;
   useTrackablePrimitives?: Boolean;
+  onReadPixels?: (targetName: string, argumentAsStrings: string[]) => void;
 }
 
 export interface IGLExtensionWiretapOptions {

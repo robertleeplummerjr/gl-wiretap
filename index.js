@@ -12,6 +12,7 @@ function glWiretap(gl, options = {}) {
     readPixelsFile,
     recording = [],
     variables = {},
+    onReadPixels,
   } = options;
   const proxy = new Proxy(gl, { get: listen });
   const contextVariables = [];
@@ -78,9 +79,21 @@ function glWiretap(gl, options = {}) {
               targetVariableName = `${contextName}Variable${i}`;
             }
             readPixelsVariableName = targetVariableName;
-            recording.push(`${indent}${contextName}.readPixels(${arguments[0]}, ${arguments[1]}, ${arguments[2]}, ${arguments[3]}, ${getEntity(arguments[4])}, ${getEntity(arguments[5])}, ${targetVariableName});`);
+            const argumentAsStrings = [
+              arguments[0],
+              arguments[1],
+              arguments[2],
+              arguments[3],
+              getEntity(arguments[4]),
+              getEntity(arguments[5]),
+              targetVariableName
+            ];
+            recording.push(`${indent}${contextName}.readPixels(${argumentAsStrings.join(', ')});`);
             if (readPixelsFile) {
               writePPM(arguments[2], arguments[3]);
+            }
+            if (onReadPixels) {
+              onReadPixels(targetVariableName, argumentAsStrings);
             }
             return gl.readPixels.apply(gl, arguments);
           case 'drawBuffers':
