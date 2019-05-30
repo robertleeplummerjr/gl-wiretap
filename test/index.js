@@ -330,6 +330,53 @@ describe('end-to-end', () => {
       + '\ngl.readPixels(0, 0, 2, 3, gl.RGBA, gl.FLOAT, glVariable0);');
     assert.calledWith(onReadPixels, 'glVariable0', [0, 0, 2, 3, 'gl.RGBA', 'gl.FLOAT', 'glVariable0']);
   });
+  it('onUnrecognizedArgumentLookup', () => {
+    class Widget {}
+    const bindTexture = sinon.spy();
+    const gl = {
+      bindTexture,
+      TEXTURE_2D: 123,
+    };
+    const context = glWiretap(gl, {
+      bindTexture,
+      useTrackablePrimitives: true,
+      onUnrecognizedArgumentLookup: (arg) => {
+        if (arg.constructor === Widget) {
+          return 'new Widget()';
+        }
+      }
+    });
+    const widget = new Widget();
+    context.bindTexture(context.TEXTURE_2D, widget);
+    assert.calledWith(gl.bindTexture);
+    assert.match(context.toString(), 'gl.bindTexture(gl.TEXTURE_2D, new Widget());');
+    assert.calledWith(bindTexture, context.TEXTURE_2D, widget);
+  });
+  it('extension.onUnrecognizedArgumentLookup', () => {
+    class Widget {}
+    const doSomething = sinon.spy();
+    const extension = {
+      doSomething,
+      A_THING: 432,
+    };
+    const gl = {
+      getExtension: () => extension
+    };
+    const context = glWiretap(gl, {
+      useTrackablePrimitives: true,
+      onUnrecognizedArgumentLookup: (arg) => {
+        if (arg.constructor === Widget) {
+          return 'new Widget()';
+        }
+      }
+    });
+    const widget = new Widget();
+    const wireTappedExtension = context.getExtension('an extension');
+    wireTappedExtension.doSomething(wireTappedExtension.A_THING, widget);
+    assert.match(context.toString(), 'const glVariables0 = gl.getExtension(\'an extension\');\n' +
+      'glVariables0.doSomething(glVariables0.A_THING, new Widget());');
+    assert.calledWith(doSomething, extension.A_THING, widget);
+  });
   it('addComment', () => {
     const gl = {};
     const context = glWiretap(gl);

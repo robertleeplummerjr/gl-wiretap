@@ -1,6 +1,6 @@
 {
   "name": "gl-wiretap",
-  "version": "0.4.0",
+  "version": "0.5.0",
   "description": "A gl debugger that listens and replays gl (WebGL, WebGL2, and HeadlessGL) gpu commands",
   "main": "index.js",
   "files": [

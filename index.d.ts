@@ -7,6 +7,7 @@ export interface IGLWiretapOptions {
   throwGetProgramParameter?: Boolean;
   useTrackablePrimitives?: Boolean;
   onReadPixels?: (targetName: string, argumentAsStrings: string[]) => void;
+  onUnrecognizedArgumentLookup?: (argument: any) => string;
 }
 
 export interface IGLExtensionWiretapOptions {
@@ -15,6 +16,7 @@ export interface IGLExtensionWiretapOptions {
   getEntity: (value: number) => string | number;
   useTrackablePrimitives?: Boolean;
   recording: string[];
+  onUnrecognizedArgumentLookup?: (argument: any) => string;
 }
 
 export interface GLWiretapProxy extends WebGLRenderingContext {

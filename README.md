@@ -73,6 +73,7 @@ Causes a thrown exception when error detected from `gl` context, to help human d
 * throwGetShaderParameter: Boolean - Causes `gl.getShaderParameter()` to throw if there is an error
 * throwGetProgramParameter: Boolean - Causes `gl.getProgramParameter()` to throw if there is an error
 * onReadPixels: Function(targetName, argumentAsStrings);
+* onUnrecognizedArgumentLookup: Function(argument) => string - Allows for just in time value tracking and insertion.
 
 ## Typescript support
 By default, typescript is supported

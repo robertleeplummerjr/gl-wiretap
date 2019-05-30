@@ -13,6 +13,7 @@ function glWiretap(gl, options = {}) {
     recording = [],
     variables = {},
     onReadPixels,
+    onUnrecognizedArgumentLookup,
   } = options;
   const proxy = new Proxy(gl, { get: listen });
   const contextVariables = [];
@@ -54,6 +55,7 @@ function glWiretap(gl, options = {}) {
                 contextVariables,
                 variables,
                 indent,
+                onUnrecognizedArgumentLookup,
               });
               contextVariables.push(tappedExtension);
               return tappedExtension;
@@ -97,7 +99,7 @@ function glWiretap(gl, options = {}) {
             }
             return gl.readPixels.apply(gl, arguments);
           case 'drawBuffers':
-            recording.push(`${indent}${contextName}.drawBuffers([${argumentsToString(arguments[0], { contextName, contextVariables, getEntity, addVariable, variables } )}]);`);
+            recording.push(`${indent}${contextName}.drawBuffers([${argumentsToString(arguments[0], { contextName, contextVariables, getEntity, addVariable, variables, onUnrecognizedArgumentLookup } )}]);`);
             return gl.drawBuffers(arguments[0]);
         }
         let result = gl[property].apply(gl, arguments);
@@ -184,7 +186,7 @@ ${indent}}
 ${indent}})();`);
   }
   function methodCallToString(method, args) {
-    return `${contextName}.${method}(${argumentsToString(args, { contextName, contextVariables, getEntity, addVariable, variables })})`;
+    return `${contextName}.${method}(${argumentsToString(args, { contextName, contextVariables, getEntity, addVariable, variables, onUnrecognizedArgumentLookup })})`;
   }
 
   function getVariableName(value) {
@@ -216,6 +218,7 @@ function glExtensionWiretap(extension, options) {
     recording,
     variables,
     indent,
+    onUnrecognizedArgumentLookup,
   } = options;
   return proxy;
   function listen(obj, property) {
@@ -223,7 +226,7 @@ function glExtensionWiretap(extension, options) {
       return function() {
         switch (property) {
           case 'drawBuffersWEBGL':
-            recording.push(`${indent}${contextName}.drawBuffersWEBGL([${argumentsToString(arguments[0], { contextName, contextVariables, getEntity: getExtensionEntity, addVariable, variables })}]);`);
+            recording.push(`${indent}${contextName}.drawBuffersWEBGL([${argumentsToString(arguments[0], { contextName, contextVariables, getEntity: getExtensionEntity, addVariable, variables, onUnrecognizedArgumentLookup })}]);`);
             return extension.drawBuffersWEBGL(arguments[0]);
         }
         let result = extension[property].apply(extension, arguments);
@@ -264,7 +267,7 @@ function glExtensionWiretap(extension, options) {
   }
 
   function methodCallToString(method, args) {
-    return `${contextName}.${method}(${argumentsToString(args, { contextName, contextVariables, getEntity: getExtensionEntity, addVariable, variables })})`;
+    return `${contextName}.${method}(${argumentsToString(args, { contextName, contextVariables, getEntity: getExtensionEntity, addVariable, variables, onUnrecognizedArgumentLookup })})`;
   }
 
   function addVariable(value, source) {
@@ -298,7 +301,7 @@ function argumentsToString(args, options) {
 }
 
 function argumentToString(arg, options) {
-  const { contextName, contextVariables, getEntity, addVariable } = options;
+  const { contextName, contextVariables, getEntity, addVariable, onUnrecognizedArgumentLookup } = options;
   if (typeof arg === 'undefined') {
     return 'undefined';
   }
@@ -333,7 +336,13 @@ function argumentToString(arg, options) {
     case 'Int32Array':
       return addVariable(arg, `new ${arg.constructor.name}(${JSON.stringify(Array.from(arg))})`);
     default:
-      throw new Error('unrecognized argument');
+      if (onUnrecognizedArgumentLookup) {
+        const instantiationString = onUnrecognizedArgumentLookup(arg);
+        if (instantiationString) {
+          return instantiationString;
+        }
+      }
+      throw new Error(`unrecognized argument type ${arg.constructor.name}`);
   }
 }
 
