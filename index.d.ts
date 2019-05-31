@@ -27,6 +27,7 @@ export interface GLWiretapProxy extends WebGLRenderingContext {
   reset(): void;
   setIndent(spaces: number): void;
   toString(): string;
+  getContextVariableName(value: any): string;
 }
 
 export function glWiretap(gl: WebGLRenderingContext, options?: IGLWiretapOptions): GLWiretapProxy;

@@ -65,6 +65,21 @@ Any variables created here (example: `gl.createProgram()`, or `gl.createShader(g
 ### glWiretap().checkThrowError()
 Causes a thrown exception when error detected from `gl` context, to help human doing debugging
 
+### glWiretap().getReadPixelsVariableName()
+Gets the last internal variable name used as a target value for `gl.readPixels()`
+
+### glWiretap().insertVariable(name, value)
+Insert a value into the `glWiretap()` playback string.
+
+### glWiretap().reset()
+Reset the playback string.
+
+### glWiretap().setIndent(spaces)
+Set the playback indentation.  Useful for formatting results.
+
+### glWiretap().getContextVariableName(value)
+Get a variable name from the context.  Useful for adding additional functionality to, for example, textures, etc.
+
 ## glWiretap options
 * contextName: String - A string that refers to the gl context for `glWiretap().toString()`
 * recording: String[] - A array of strings that

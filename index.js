@@ -31,6 +31,7 @@ function glWiretap(gl, options = {}) {
       case 'reset': return reset;
       case 'setIndent': return setIndent;
       case 'toString': return toString;
+      case 'getContextVariableName': return getContextVariableName;
     }
     if (typeof gl[property] === 'function') {
       return function() { // need arguments from this, fyi
@@ -196,6 +197,14 @@ ${indent}})();`);
           return name;
         }
       }
+    }
+    return null;
+  }
+
+  function getContextVariableName(value) {
+    const i = contextVariables.indexOf(value);
+    if (i !== -1) {
+      return `${contextName}Variable${i}`;
     }
     return null;
   }

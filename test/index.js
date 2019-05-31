@@ -430,6 +430,19 @@ describe('end-to-end', () => {
     assert.calledWith(gl.aVoid);
     assert.match(context.toString(), '  gl.aVoid();');
   });
+  it('getContextVariableName', () => {
+    const texture = {};
+    const createTexture = () => {
+      return texture;
+    };
+    const gl = {
+      createTexture,
+    };
+    const context = glWiretap(gl);
+    context.createTexture();
+    const name = context.getContextVariableName(texture);
+    assert.match(name, 'glVariable0');
+  });
   it('getError returns 0, throwGetError = false', () => {
     const getError = sinon.spy(() => 0);
     const gl = {
