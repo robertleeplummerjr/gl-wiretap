@@ -288,7 +288,7 @@ function glExtensionWiretap(extension, options) {
 }
 
 function argumentsToString(args, options) {
-  const { variables } = options;
+  const { variables, onUnrecognizedArgumentLookup } = options;
   return (Array.from(args).map((arg) => {
     const variableName = getVariableName(arg);
     if (variableName) {
@@ -300,10 +300,14 @@ function argumentsToString(args, options) {
   function getVariableName(value) {
     if (variables) {
       for (const name in variables) {
+        if (!variables.hasOwnProperty(name)) continue;
         if (variables[name] === value) {
           return name;
         }
       }
+    }
+    if (onUnrecognizedArgumentLookup) {
+      return onUnrecognizedArgumentLookup(value);
     }
     return null;
   }

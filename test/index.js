@@ -430,7 +430,7 @@ describe('end-to-end', () => {
     assert.calledWith(gl.aVoid);
     assert.match(context.toString(), '  gl.aVoid();');
   });
-  it('getContextVariableName', () => {
+  it('getContextVariableName when contextVariables has value', () => {
     const texture = {};
     const createTexture = () => {
       return texture;
@@ -442,6 +442,12 @@ describe('end-to-end', () => {
     context.createTexture();
     const name = context.getContextVariableName(texture);
     assert.match(name, 'glVariable0');
+  });
+  it('getContextVariableName when contextVariables does not have value', () => {
+    const gl = {};
+    const context = glWiretap(gl);
+    const name = context.getContextVariableName({});
+    assert.match(name, null);
   });
   it('getError returns 0, throwGetError = false', () => {
     const getError = sinon.spy(() => 0);
