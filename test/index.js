@@ -161,7 +161,7 @@ describe('end-to-end', () => {
     const array = [1,2,3,4];
     context.aVoid(array);
     assert.calledWith(gl.aVoid);
-    assert.match(context.toString(), 'const glVariable0 = new Array(1,2,3,4);'
+    assert.match(context.toString(), 'const glVariable0 = new Array([1,2,3,4]);'
       + '\ngl.aVoid(glVariable0);');
   });
   it('void function with 1 Float32Array argument', () => {

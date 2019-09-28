@@ -342,7 +342,7 @@ function argumentToString(arg, options) {
     case 'Number': return getEntity(arg);
     case 'Boolean': return getEntity(arg);
     case 'Array':
-      return addVariable(arg, `new ${arg.constructor.name}(${Array.from(arg).join(',')})`);
+      return addVariable(arg, `new ${arg.constructor.name}([${Array.from(arg).join(',')}])`);
     case 'Float32Array':
     case 'Uint8Array':
     case 'Uint16Array':
